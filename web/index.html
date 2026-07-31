@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EUV Playground — 13.5 nm lithography simulator</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel2: #1c2129;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #f78166;
+    --green: #3fb950;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.55;
+    background-image: radial-gradient(1200px 500px at 50% -100px, rgba(88,166,255,0.07), transparent 70%);
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 20px 48px; }
+
+  header { padding: 8px 0 28px; border-bottom: 1px solid var(--border); margin-bottom: 28px; }
+  header h1 {
+    font-size: 30px; letter-spacing: 0.5px;
+    background: linear-gradient(90deg, #58a6ff, #f78166);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-weight: 700;
+  }
+  header .sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  header .sub code { color: var(--accent); font-family: var(--mono); font-size: 13px; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 26px;
+    margin-bottom: 28px;
+  }
+  .card-head { margin-bottom: 18px; }
+  .card-head .kicker {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px;
+    color: var(--accent); text-transform: uppercase;
+  }
+  .card-head h2 { font-size: 19px; margin: 2px 0 6px; }
+  .card-head .desc { color: var(--muted); font-size: 13.5px; max-width: 820px; }
+
+  .grid2 { display: grid; grid-template-columns: 320px 1fr; gap: 26px; align-items: start; }
+  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .slider-row { display: block; margin-bottom: 15px; }
+  .slider-row .s-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+  .slider-row .s-name { font-size: 13px; }
+  .slider-row .s-name em { font-style: normal; font-family: var(--mono); color: var(--accent); font-size: 12.5px; }
+  .slider-row .s-val { font-family: var(--mono); font-size: 13px; color: var(--accent2); }
+  .slider-row input[type=range] {
+    width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
+    background: var(--panel2); border-radius: 2px; outline: none;
+  }
+  .slider-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 15px; height: 15px; border-radius: 50%;
+    background: var(--accent); border: 2px solid #0d1117; cursor: pointer;
+    box-shadow: 0 0 6px rgba(88,166,255,0.5);
+  }
+  .slider-row input[type=range]::-moz-range-thumb {
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--accent); border: 2px solid #0d1117; cursor: pointer;
+  }
+
+  .plot-wrap canvas { width: 100%; height: auto; display: block; border: 1px solid var(--border); border-radius: 8px; background: #0b0f14; }
+  .readout {
+    margin-top: 12px; font-family: var(--mono); font-size: 13px;
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; color: var(--text);
+  }
+  .readout .hi { color: var(--accent2); font-weight: 600; }
+  .readout .dim { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+  .stat {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px;
+  }
+  .stat .s-label { font-family: var(--mono); font-size: 11px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
+  .stat .s-num { font-family: var(--mono); font-size: 30px; font-weight: 700; margin-top: 2px; }
+  .stat .s-num small { font-size: 15px; color: var(--muted); font-weight: 400; }
+  .stat .s-sub { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+  .bar-wrap { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; }
+  .bar-wrap .b-label { font-family: var(--mono); font-size: 11px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .bar-track { height: 18px; background: #0b0f14; border-radius: 5px; overflow: hidden; border: 1px solid var(--border); }
+  .bar-fill { height: 100%; width: 0%; border-radius: 4px; transition: width 120ms linear, background 120ms linear; }
+  .bar-ticks { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(88,166,255,0.07);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; font-size: 13.5px;
+  }
+  .callout code { font-family: var(--mono); color: var(--accent); font-size: 12.5px; }
+
+  #why ul { list-style: none; }
+  #why li {
+    padding: 12px 14px 12px 40px; position: relative;
+    border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px;
+    background: var(--panel2); font-size: 14px;
+  }
+  #why li::before {
+    content: attr(data-n); position: absolute; left: 12px; top: 12px;
+    font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 700;
+  }
+  #why li code { font-family: var(--mono); font-size: 12.5px; color: var(--accent2); }
+
+  footer {
+    border-top: 1px solid var(--border); padding-top: 18px; margin-top: 8px;
+    font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>EUV Playground</h1>
+    <p class="sub">Extreme ultraviolet lithography at <code>13.5 nm</code> — the optics and the statistics that make it so hard</p>
+  </header>
+
+  <!-- ===================== DEMO 1 : MULTILAYER MIRROR ===================== -->
+  <section class="card" id="demo1">
+    <div class="card-head">
+      <div class="kicker">Demo 01 · Optics</div>
+      <h2>Mo/Si multilayer mirror reflectivity</h2>
+      <p class="desc">
+        EUV has no lenses — the optics are <b>Bragg mirrors</b>: 10–80 alternating Mo/Si bilayer pairs
+        (period d ≈ 6.9 nm, Γ = Mo fraction) that coherently reflect 13.5 nm light. Reflectivity is computed
+        with the <b>Parratt recursion</b> (exact Fresnel stack treatment), including interface roughness
+        (Debye–Waller) and absorption. Drag the sliders and watch the resonance move.
+      </p>
+    </div>
+
+    <div class="grid2">
+      <div class="controls">
+        <label class="slider-row">
+          <span class="s-top"><span class="s-name">Wavelength <em>λ</em></span><span class="s-val" id="vLam">13.50 nm</span></span>
+          <input type="range" id="slLam" min="12.5" max="14.5" step="0.05" value="13.5">
+        </label>
+        <label class="slider-row">
+          <span class="s-top"><span class="s-name">Bilayer period <em>d</em></span><span class="s-val" id="vD">6.90 nm</span></span>
+          <input type="range" id="slD" min="6.5" max="7.5" step="0.01" value="6.9">
+        </label>
+        <label class="slider-row">
+          <span class="s-top"><span class="s-name">Bilayer pairs <em>N</em></span><span class="s-val" id="vN">50</span></span>
+          <input type="range" id="slN" min="10" max="80" step="1" value="50">
+        </label>
+        <label class="slider-row">
+          <span class="s-top"><span class="s-name">Thickness ratio <em>Γ = d<sub>Mo</sub>/d</em></span><span class="s-val" id="vG">0.40</span></span>
+          <input type="range" id="slG" min="0.3" max="0.5" step="0.01" value="0.4">
+        </label>
+        <label class="slider-row">
+          <span class="s-top"><span class="s-name">Incidence angle <em>θ</em> (from normal)</span><span class="s-val" id="vTh">0.0°</span></span>
+          <input type="range" id="slTh" min="0" max="10" step="0.1" value="0">
+        </label>
+        <label class="slider-row">
+          <span class="s-top"><span class="s-name">Interface roughness <em>σ</em></span><span class="s-val" id="vSg">0.30 nm</span></span>
+          <input type="range" id="slSg" min="0" max="0.6" step="0.01" value="0.3">
+        </label>
+      </div>
+
+      <div class="plot-wrap">
+        <canvas id="plot" width="960" height="460"></canvas>
+        <div class="readout" id="readout1"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== DEMO 2 : SHOT NOISE ===================== -->
+  <section class="card" id="demo2">
+    <div class="card-head">
+      <div class="kicker">Demo 02 · Statistics</div>
+      <h2>Photon shot noise — why EUV scaling is in trouble</h2>
+      <p class="desc">
+        Each 13.5 nm photon carries 91.8 eV, so an EUV exposure uses only a <b>handful of photons per feature</b>.
+        Photon arrivals are Poisson — relative noise σ/μ = 1/√N. Fewer photons per pixel ⇒ noisier image ⇒
+        line-edge roughness you cannot engineer away.
+      </p>
+    </div>
+
+    <div class="grid2">
+      <div class="controls">
+        <label class="slider-row">
+          <span class="s-top"><span class="s-name">Resist dose</span><span class="s-val" id="vDose">30 mJ/cm²</span></span>
+          <input type="range" id="slDose" min="10" max="100" step="1" value="30">
+        </label>
+        <label class="slider-row">
+          <span class="s-top"><span class="s-name">Feature size (pixel)</span><span class="s-val" id="vFeat">10 nm</span></span>
+          <input type="range" id="slFeat" min="5" max="50" step="1" value="10">
+        </label>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="s-label">Photons / pixel</div>
+            <div class="s-num" id="stPhotons">20.4<small> photons</small></div>
+            <div class="s-sub" id="stFlux">2.04×10¹⁵ photons/cm²</div>
+          </div>
+          <div class="stat">
+            <div class="s-label">Poisson noise σ/μ</div>
+            <div class="s-num" id="stNoise">±22.1<small>%</small></div>
+            <div class="s-sub">= 1/√N</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="bar-wrap">
+          <div class="b-label"><span>Photons per pixel</span><span id="barVal">20.4 photons</span></div>
+          <div class="bar-track"><div class="bar-fill" id="shotBar"></div></div>
+          <div class="bar-ticks"><span>1</span><span>10</span><span>100</span><span>1000</span></div>
+        </div>
+        <div class="callout" id="noiseCallout">
+          <b>At the defaults (30 mJ/cm², 10 nm): ≈20 photons per pixel → ±22% shot noise.</b>
+          About one in five of the "ink" that writes a modern transistor is random chance —
+          and shrinking features further only makes it worse. (13.5 nm photons carry ~14× more
+          energy than 193 nm ArF photons, which is precisely why the photon count is so low.)
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== WHY EUV IS WEIRD ===================== -->
+  <section class="card" id="why">
+    <div class="card-head">
+      <div class="kicker">Context</div>
+      <h2>Why EUV is weird</h2>
+    </div>
+    <ul>
+      <li data-n="1"><b>No lenses — vacuum only.</b> At 13.5 nm every material absorbs, so refractive optics are impossible.
+          The scanner is an all-mirror, all-vacuum machine; the source is a laser-heated tin plasma.</li>
+      <li data-n="2"><b>Mirrors are Mo/Si multilayers.</b> Each "mirror" is 40–60 alternating Mo/Si pairs (period ≈ 6.9 nm)
+          engineered to Bragg-reflect at 13.5 nm. Peak reflectivity is only <code>~70%</code> (vs 99.9% for visible light),
+          so a 10-mirror optical train throws away ~99% of the source light.</li>
+      <li data-n="3"><b>Shot noise is brutal.</b> 92 eV photons → <code>~20 photons per 10 nm feature</code> at a 30 mJ/cm² dose →
+          <code>±22% Poisson noise</code>. Roughly a fifth of the "ink" writing a transistor is random chance.</li>
+    </ul>
+  </section>
+
+  <footer>Physics: Parratt recursion + Poisson statistics. Constants from CXRO/LBNL tables.</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ================================================================
+   * Optical constants at 13.5 nm (E = 91.8 eV), n = 1 - δ + iβ.
+   * Published values from the CXRO / LBNL x-ray interactions tables
+   * (henke.lbl.gov / CXRO database).
+   * ================================================================ */
+  var CONST = {
+    Mo: { delta: 0.0777, beta: 0.00635 },
+    Si: { delta: 0.00255, beta: 0.00211 }
+  };
+
+  /* ---- complex numbers as {re, im} pairs (no libraries) ---- */
+  function cadd(a, b) { return { re: a.re + b.re, im: a.im + b.im }; }
+  function csub(a, b) { return { re: a.re - b.re, im: a.im - b.im }; }
+  function cmul(a, b) { return { re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re }; }
+  function cdiv(a, b) {
+    var d = b.re * b.re + b.im * b.im;
+    return { re: (a.re * b.re + a.im * b.im) / d, im: (a.im * b.re - a.re * b.im) / d };
+  }
+  /* principal branch: Re ≥ 0, Im follows sign of Im(z) — for n²−sin²θ with
+     β>0 this yields Im(k_z) > 0 (absorption: waves decay into the stack) */
+  function csqrt(z) {
+    var r = Math.hypot(z.re, z.im);
+    return {
+      re: Math.sqrt((r + z.re) / 2),
+      im: (z.im >= 0 ? 1 : -1) * Math.sqrt((r - z.re) / 2)
+    };
+  }
+  function cexp(z) { // e^z
+    var e = Math.exp(z.re);
+    return { re: e * Math.cos(z.im), im: e * Math.sin(z.im) };
+  }
+  function cexpI(z) { // e^{i z}
+    var e = Math.exp(-z.im);
+    return { re: e * Math.cos(z.re), im: e * Math.sin(z.re) };
+  }
+  function cabs2(z) { return z.re * z.re + z.im * z.im; }
+
+  /* ================================================================
+   * Parratt recursion — reflectivity of a Mo/Si multilayer stack.
+   *
+   * Stack (top → bottom): vacuum | [Mo(Γd) / Si((1−Γ)d)] × N | Si substrate.
+   * Layer index 0 = vacuum, 1..2N = the stack, 2N+1 = substrate.
+   *
+   *   k_zj = (2π/λ)·sqrt(n_j² − sin²θ)          θ from surface normal
+   *   F_j  = (k_zj − k_z(j+1)) / (k_zj + k_z(j+1))
+   *   F_j *= exp(−2·k_zj·k_z(j+1)·σ²)           Debye–Waller roughness
+   *   R_{2N+1} = 0
+   *   R_j  = (F_j + R_{j+1}·exp(2i·k_z(j+1)·d_{j+1}))
+   *          / (1 + F_j·R_{j+1}·exp(2i·k_z(j+1)·d_{j+1}))
+   *   R    = |R_0|²
+   * ================================================================ */
+  function parrattReflectivity(lambda, d, N, gamma, thetaDeg, sigma) {
+    var k0 = 2 * Math.PI / lambda;
+    var sin2 = Math.pow(Math.sin(thetaDeg * Math.PI / 180), 2);
+    var nMo = { re: 1 - CONST.Mo.delta, im: CONST.Mo.beta };
+    var nSi = { re: 1 - CONST.Si.delta, im: CONST.Si.beta };
+    var nVac = { re: 1, im: 0 };
+
+    function kz(n) {
+      var t = csub(cmul(n, n), { re: sin2, im: 0 });
+      var s = csqrt(t);
+      return { re: k0 * s.re, im: k0 * s.im };
+    }
+
+    var ks = [kz(nVac)];      // layer 0: vacuum
+    var ds = [0];
+    for (var i = 0; i < N; i++) {
+      ks.push(kz(nMo)); ds.push(gamma * d);          // Mo of pair i+1
+      ks.push(kz(nSi)); ds.push((1 - gamma) * d);    // Si of pair i+1
+    }
+    ks.push(kz(nSi)); ds.push(0);                    // substrate (semi-infinite)
+
+    var R = { re: 0, im: 0 };                        // R_{2N+1} = 0 (substrate)
+    var j, kj, kjp1, F, P, RP;
+    for (j = 2 * N; j >= 0; j--) {
+      kj = ks[j]; kjp1 = ks[j + 1];
+      F = cdiv(csub(kj, kjp1), cadd(kj, kjp1));                        // Fresnel
+      F = cmul(F, cexp(cmul({ re: -2 * sigma * sigma, im: 0 }, cmul(kj, kjp1)))); // Debye–Waller
+      P = cexpI(cmul(kjp1, { re: 2 * ds[j + 1], im: 0 }));             // exp(2i·k·d)
+      RP = cmul(R, P);
+      R = cdiv(cadd(F, RP), cadd({ re: 1, im: 0 }, cmul(F, RP)));
+    }
+    return cabs2(R);                                 // |R_0|²
+  }
+
+  /* ================================================================
+   * Demo 1 — plot R vs λ
+   * ================================================================ */
+  var LAM_MIN = 12.5, LAM_MAX = 14.5, NPT = 240;
+  var canvas = document.getElementById("plot");
+  var ctx = canvas.getContext("2d");
+  var dpr = window.devicePixelRatio || 1;
+  var CW = 960, CH = 460;
+  canvas.width = CW * dpr; canvas.height = CH * dpr;
+  ctx.scale(dpr, dpr);
+
+  function getD1() {
+    return {
+      lam: parseFloat(document.getElementById("slLam").value),
+      d: parseFloat(document.getElementById("slD").value),
+      N: parseInt(document.getElementById("slN").value, 10),
+      gamma: parseFloat(document.getElementById("slG").value),
+      theta: parseFloat(document.getElementById("slTh").value),
+      sigma: parseFloat(document.getElementById("slSg").value)
+    };
+  }
+
+  function curveData(p) {
+    var xs = [], ys = [], i;
+    for (i = 0; i < NPT; i++) {
+      xs.push(LAM_MIN + (LAM_MAX - LAM_MIN) * i / (NPT - 1));
+      ys.push(parrattReflectivity(xs[i], p.d, p.N, p.gamma, p.theta, p.sigma));
+    }
+    return { xs: xs, ys: ys };
+  }
+
+  function fmtPct(x) { return (100 * x).toFixed(2) + "%"; }
+
+  function draw() {
+    var p = getD1();
+    var cd = curveData(p);
+
+    /* peak + FWHM over the scan */
+    var peak = 0, peakLam = LAM_MIN, i;
+    for (i = 0; i < NPT; i++) if (cd.ys[i] > peak) { peak = cd.ys[i]; peakLam = cd.xs[i]; }
+    var half = peak / 2, lo = LAM_MIN, hi = LAM_MAX, fwhm = 0;
+    for (i = 1; i < NPT; i++) {
+      if (cd.ys[i - 1] <= half && cd.ys[i] > half) lo = cd.xs[i];
+      if (cd.ys[i - 1] >= half && cd.ys[i] < half && hi === LAM_MAX) hi = cd.xs[i];
+    }
+    if (hi > lo) fwhm = hi - lo;
+
+    var rAt135 = parrattReflectivity(13.5, p.d, p.N, p.gamma, p.theta, p.sigma);
+    var rAtLam = parrattReflectivity(p.lam, p.d, p.N, p.gamma, p.theta, p.sigma);
+
+    /* layout */
+    var PL = 62, PR = 18, PT = 26, PB = 46;
+    var PW = CW - PL - PR, PH = CH - PT - PB;
+    var x = function (lam) { return PL + (lam - LAM_MIN) / (LAM_MAX - LAM_MIN) * PW; };
+    var y = function (r) { return PT + PH - (r / 1.0) * PH; };
+
+    ctx.clearRect(0, 0, CW, CH);
+
+    /* grid + axes */
+    ctx.strokeStyle = "#21262d"; ctx.lineWidth = 1;
+    ctx.font = "11px " + getComputedStyle(document.body).getPropertyValue("--mono") || "monospace";
+    ctx.fillStyle = "#8b949e";
+    var g;
+    for (g = 0; g <= 4; g++) {
+      var rv = g / 4;
+      ctx.beginPath(); ctx.moveTo(PL, y(rv)); ctx.lineTo(PL + PW, y(rv)); ctx.stroke();
+      ctx.textAlign = "right"; ctx.fillText((100 * rv).toFixed(0) + "%", PL - 8, y(rv) + 4);
+    }
+    for (g = 0; g <= 8; g++) {
+      var lv = LAM_MIN + (LAM_MAX - LAM_MIN) * g / 8;
+      ctx.beginPath(); ctx.moveTo(x(lv), PT); ctx.lineTo(x(lv), PT + PH); ctx.stroke();
+      ctx.textAlign = "center"; ctx.fillText(lv.toFixed(2) + "", x(lv), PT + PH + 18);
+    }
+    ctx.fillStyle = "#8b949e"; ctx.textAlign = "right";
+    ctx.fillText("R", PL - 8, PT - 8);
+    ctx.textAlign = "right"; ctx.fillText("wavelength λ (nm)", PL + PW, CH - 4);
+
+    /* curve */
+    var grad = ctx.createLinearGradient(0, PT, 0, PT + PH);
+    grad.addColorStop(0, "#58a6ff"); grad.addColorStop(1, "#f78166");
+    ctx.strokeStyle = grad; ctx.lineWidth = 2; ctx.beginPath();
+    for (i = 0; i < NPT; i++) {
+      if (i === 0) ctx.moveTo(x(cd.xs[i]), y(cd.ys[i]));
+      else ctx.lineTo(x(cd.xs[i]), y(cd.ys[i]));
+    }
+    ctx.stroke();
+
+    /* reference marker line at 13.5 nm */
+    ctx.save();
+    ctx.setLineDash([5, 4]); ctx.strokeStyle = "#8b949e"; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(x(13.5), PT); ctx.lineTo(x(13.5), PT + PH); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = "#8b949e"; ctx.textAlign = "left";
+    ctx.fillText("13.5 nm", x(13.5) + 5, PT + PH + 28);
+
+    /* operating-point marker at slider λ */
+    ctx.save();
+    ctx.strokeStyle = "#58a6ff"; ctx.lineWidth = 1.2; ctx.setLineDash([2, 3]);
+    ctx.beginPath(); ctx.moveTo(x(p.lam), y(rAtLam)); ctx.lineTo(x(p.lam), PT + PH); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = "#58a6ff"; ctx.beginPath(); ctx.arc(x(p.lam), y(rAtLam), 4.5, 0, 2 * Math.PI); ctx.fill();
+    /* operating-wavelength chip at the plot top, kept clear of the annotation box */
+    ctx.font = "11px monospace";
+    var lamLabel = "λ = " + p.lam.toFixed(2) + " nm";
+    var lx = Math.min(Math.max(x(p.lam), PL + 34), PL + PW - 228);
+    var lw = ctx.measureText(lamLabel).width + 12;
+    ctx.fillStyle = "rgba(13,17,23,0.85)";
+    ctx.fillRect(lx - lw / 2, PT + 4, lw, 18);
+    ctx.fillStyle = "#58a6ff"; ctx.textAlign = "center";
+    ctx.fillText(lamLabel, lx, PT + 17);
+
+    /* peak dot */
+    ctx.fillStyle = "#f78166"; ctx.beginPath(); ctx.arc(x(peakLam), y(peak), 4.5, 0, 2 * Math.PI); ctx.fill();
+
+    /* annotation box */
+    var bx = PL + PW - 208, by = PT + 10, bw = 196, bh = 62;
+    ctx.fillStyle = "rgba(13,17,23,0.92)"; ctx.strokeStyle = "#30363d"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.rect(bx, by, bw, bh); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#f78166"; ctx.font = "bold 13px " + "monospace";
+    ctx.textAlign = "left";
+    ctx.fillText("Peak R = " + fmtPct(peak), bx + 10, by + 20);
+    ctx.fillStyle = "#c9d1d9";
+    ctx.fillText("at λ = " + peakLam.toFixed(2) + " nm", bx + 10, by + 38);
+    ctx.fillStyle = "#8b949e"; ctx.font = "11px monospace";
+    ctx.fillText("R @ 13.5 nm = " + fmtPct(rAt135), bx + 10, by + 54);
+
+    /* readout */
+    var ro = document.getElementById("readout1");
+    ro.innerHTML =
+      'R @ 13.5 nm = <span class="hi">' + fmtPct(rAt135) + '</span> &nbsp;·&nbsp; ' +
+      'R(λ=' + p.lam.toFixed(2) + ' nm) = <span class="hi">' + fmtPct(rAtLam) + '</span> &nbsp;·&nbsp; ' +
+      'Peak R = <span class="hi">' + fmtPct(peak) + '</span> @ ' + peakLam.toFixed(2) + ' nm &nbsp;·&nbsp; FWHM ≈ ' + fwhm.toFixed(2) + ' nm' +
+      '<div class="dim">Parratt recursion · ' + (2 * p.N + 1) + ' interfaces · n(Mo) = 1−0.0777 + 0.00635i · n(Si) = 1−0.00255 + 0.00211i (CXRO/LBNL @ 13.5 nm)</div>';
+
+    updateD1Labels(p);
+  }
+
+  function updateD1Labels(p) {
+    document.getElementById("vLam").textContent = p.lam.toFixed(2) + " nm";
+    document.getElementById("vD").textContent = p.d.toFixed(2) + " nm";
+    document.getElementById("vN").textContent = p.N;
+    document.getElementById("vG").textContent = p.gamma.toFixed(2);
+    document.getElementById("vTh").textContent = p.theta.toFixed(1) + "°";
+    document.getElementById("vSg").textContent = p.sigma.toFixed(2) + " nm";
+  }
+
+  /* ================================================================
+   * Demo 2 — photon shot noise
+   * ================================================================ */
+  var E_PHOTON_EV = 91.8;                 // eV per 13.5 nm photon (1240/13.5)
+  var E_PHOTON_J = E_PHOTON_EV * 1.602e-19;
+
+  function getD2() {
+    return {
+      dose: parseFloat(document.getElementById("slDose").value),      // mJ/cm²
+      size: parseFloat(document.getElementById("slFeat").value)      // nm
+    };
+  }
+
+  function computeShotNoise() {
+    var p = getD2();
+
+    /* Photons per cm² — dose converted mJ → J, divided by photon energy in J.
+       At 30 mJ/cm²: 2.04×10¹⁵ photons/cm². */
+    var photonsPerCm2 = (p.dose * 1e-3) / E_PHOTON_J;
+
+    /* Photons per pixel — project reference convention (README "Reference
+       numbers"): dose[mJ/cm²] × (size[nm])² / (E_photon[eV] × 1.602).
+       This reproduces the published EUV shot-noise figure of ~20 photons per
+       10 nm feature at 30 mJ/cm² (Poisson σ/μ ≈ 22%). */
+    var photonsPerPixel = p.dose * (p.size * p.size) / (E_PHOTON_EV * 1.602);
+    var noise = photonsPerPixel > 0 ? 1 / Math.sqrt(photonsPerPixel) : 1; // σ/μ
+
+    /* display */
+    document.getElementById("stPhotons").innerHTML =
+      photonsPerPixel.toFixed(1) + "<small> photons</small>";
+    document.getElementById("stNoise").innerHTML =
+      "±" + (100 * noise).toFixed(1) + "<small>%</small>";
+    document.getElementById("stNoise").style.color =
+      noise < 0.15 ? "#3fb950" : (noise < 0.35 ? "#d29922" : "#f85149");
+    document.getElementById("stFlux").textContent =
+      photonsPerCm2.toExponential(2) + " photons/cm²";
+
+    /* log-scaled bar, 1 → ~2000 photons */
+    var frac = Math.min(1, Math.log10(photonsPerPixel + 1) / Math.log10(2001));
+    var bar = document.getElementById("shotBar");
+    bar.style.width = (100 * frac).toFixed(1) + "%";
+    var hue = Math.max(0, 120 * (1 - Math.min(1, noise * 1.3)));
+    bar.style.background = "hsl(" + hue + ", 80%, 55%)";
+    document.getElementById("barVal").textContent = photonsPerPixel.toFixed(1) + " photons";
+
+    document.getElementById("vDose").textContent = p.dose + " mJ/cm²";
+    document.getElementById("vFeat").textContent = p.size + " nm";
+
+    var callout = document.getElementById("noiseCallout");
+    var atDefaults = (p.dose === 30 && p.size === 10);
+    callout.innerHTML = atDefaults
+      ? '<b>At the defaults (30 mJ/cm², 10 nm): ≈' + photonsPerPixel.toFixed(0) + ' photons per pixel → ±' +
+        (100 * noise).toFixed(0) + '% shot noise.</b> About one in five of the "ink" that writes a modern transistor is random chance — and shrinking features further only makes it worse.'
+      : '<b>Current settings:</b> ' + photonsPerPixel.toFixed(1) + ' photons per ' + p.size + ' nm pixel → ±' +
+        (100 * noise).toFixed(1) + '% Poisson noise (σ/μ = 1/√N). Drag dose and feature size — smaller features are starved of photons.';
+  }
+
+  /* ---- wiring ---- */
+  var sliders1 = ["slLam", "slD", "slN", "slG", "slTh", "slSg"];
+  var sliders2 = ["slDose", "slFeat"];
+  sliders1.forEach(function (id) {
+    document.getElementById(id).addEventListener("input", draw);
+  });
+  sliders2.forEach(function (id) {
+    document.getElementById(id).addEventListener("input", computeShotNoise);
+  });
+
+  /* initial render */
+  draw();
+  computeShotNoise();
+})();
+</script>
+</body>
+</html>
