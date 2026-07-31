@@ -437,8 +437,14 @@
     ctx.setLineDash([5, 4]); ctx.strokeStyle = "#8b949e"; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.moveTo(x(13.5), PT); ctx.lineTo(x(13.5), PT + PH); ctx.stroke();
     ctx.restore();
-    ctx.fillStyle = "#8b949e"; ctx.textAlign = "left";
-    ctx.fillText("13.5 nm", x(13.5) + 5, PT + PH + 28);
+    /* reference tick on the axis at 13.5 nm (design wavelength) */
+    ctx.fillStyle = "#8b949e";
+    ctx.beginPath();
+    ctx.moveTo(x(13.5) - 4, PT + PH + 12);
+    ctx.lineTo(x(13.5) + 4, PT + PH + 12);
+    ctx.lineTo(x(13.5), PT + PH + 4);
+    ctx.closePath();
+    ctx.fill();
 
     /* operating-point marker at slider λ */
     ctx.save();
