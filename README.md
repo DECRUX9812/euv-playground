@@ -1,8 +1,6 @@
 # EUV Playground — open-source EUV lithography simulator
 
-Interactive, defensible-physics simulation of extreme ultraviolet (13.5 nm)
-lithography. Built from real equations, verified against published reference
-data. No NDAs, no ASML — just optics you can compute.
+Interactive simulation of extreme ultraviolet (13.5 nm) lithography using multilayer-optics equations and published reference data.
 
 ## Why EUV is weird (30 seconds)
 
