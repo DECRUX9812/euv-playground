@@ -158,7 +158,7 @@
       <div class="kicker">Demo 01 · Optics</div>
       <h2>Mo/Si multilayer mirror reflectivity</h2>
       <p class="desc">
-        EUV has no lenses — the optics are <b>Bragg mirrors</b>: 10–80 alternating Mo/Si bilayer pairs
+        EUV has no lenses. The optics are <b>Bragg mirrors</b>: 10–80 alternating Mo/Si bilayer pairs
         (period d ≈ 6.9 nm, Γ = Mo fraction) that coherently reflect 13.5 nm light. Reflectivity is computed
         with the <b>Parratt recursion</b> (exact Fresnel stack treatment), including interface roughness
         (Debye–Waller) and absorption. Drag the sliders and watch the resonance move.
@@ -204,10 +204,10 @@
   <section class="card" id="demo2">
     <div class="card-head">
       <div class="kicker">Demo 02 · Statistics</div>
-      <h2>Photon shot noise — why EUV scaling is in trouble</h2>
+      <h2>Photon shot noise: why EUV scaling is in trouble</h2>
       <p class="desc">
         Each 13.5 nm photon carries 91.8 eV, so an EUV exposure uses only a <b>handful of photons per feature</b>.
-        Photon arrivals are Poisson — relative noise σ/μ = 1/√N. Fewer photons per pixel ⇒ noisier image ⇒
+        Photon arrivals are Poisson, so relative noise σ/μ = 1/√N. Fewer photons per pixel ⇒ noisier image ⇒
         line-edge roughness you cannot engineer away.
       </p>
     </div>
@@ -245,7 +245,7 @@
         </div>
         <div class="callout" id="noiseCallout">
           <b>At the defaults (30 mJ/cm², 10 nm): ≈20 photons per pixel → ±22% shot noise.</b>
-          About one in five of the "ink" that writes a modern transistor is random chance —
+          About one in five of the "ink" that writes a modern transistor is random chance,
           and shrinking features further only makes it worse. (13.5 nm photons carry ~14× more
           energy than 193 nm ArF photons, which is precisely why the photon count is so low.)
         </div>
@@ -257,7 +257,7 @@
   <section class="card" id="demo3">
     <div class="card-head">
       <div class="kicker">Demo 03 · Optics</div>
-      <h2>Mask → pupil → image — aberrations in action</h2>
+      <h2>Mask → pupil → image: aberrations in action</h2>
       <p class="desc">
         A 2-D <b>Abbe imaging</b> simulation: light diffracted by the mask passes through the
         projection pupil, picks up <b>Zernike aberration phase</b>, and forms the aerial image.
@@ -305,7 +305,7 @@
       <div class="img-grid">
         <div class="img-cell">
           <canvas id="pupilCanvas" width="256" height="256"></canvas>
-          <div class="img-cap">Pupil phase — hue = optical path difference (λ)</div>
+          <div class="img-cap">Pupil phase: hue = optical path difference (λ)</div>
         </div>
         <div class="img-cell">
           <canvas id="imageCanvas" width="256" height="256"></canvas>
@@ -322,7 +322,7 @@
       <h2>Why EUV is weird</h2>
     </div>
     <ul>
-      <li data-n="1"><b>No lenses — vacuum only.</b> At 13.5 nm every material absorbs, so refractive optics are impossible.
+      <li data-n="1"><b>No lenses, vacuum only.</b> At 13.5 nm every material absorbs, so refractive optics are impossible.
           The scanner is an all-mirror, all-vacuum machine; the source is a laser-heated tin plasma.</li>
       <li data-n="2"><b>Mirrors are Mo/Si multilayers.</b> Each "mirror" is 40–60 alternating Mo/Si pairs (period ≈ 6.9 nm)
           engineered to Bragg-reflect at 13.5 nm. Peak reflectivity is only <code>~70%</code> (vs 99.9% for visible light),
@@ -357,7 +357,7 @@
     var d = b.re * b.re + b.im * b.im;
     return { re: (a.re * b.re + a.im * b.im) / d, im: (a.im * b.re - a.re * b.im) / d };
   }
-  /* principal branch: Re ≥ 0, Im follows sign of Im(z) — for n²−sin²θ with
+  /* principal branch: Re ≥ 0, Im follows sign of Im(z), for n²−sin²θ with
      β>0 this yields Im(k_z) > 0 (absorption: waves decay into the stack) */
   function csqrt(z) {
     var r = Math.hypot(z.re, z.im);
@@ -377,7 +377,7 @@
   function cabs2(z) { return z.re * z.re + z.im * z.im; }
 
   /* ================================================================
-   * Parratt recursion — reflectivity of a Mo/Si multilayer stack.
+   * Parratt recursion: reflectivity of a Mo/Si multilayer stack.
    *
    * Stack (top → bottom): vacuum | [Mo(Γd) / Si((1−Γ)d)] × N | Si substrate.
    * Layer index 0 = vacuum, 1..2N = the stack, 2N+1 = substrate.
@@ -425,7 +425,7 @@
   }
 
   /* ================================================================
-   * Demo 1 — plot R vs λ
+   * Demo 1: plot R vs λ
    * ================================================================ */
   var LAM_MIN = 12.5, LAM_MAX = 14.5, NPT = 240;
   var canvas = document.getElementById("plot");
@@ -577,7 +577,7 @@
   }
 
   /* ================================================================
-   * Demo 2 — photon shot noise
+   * Demo 2: photon shot noise
    * ================================================================ */
   var E_PHOTON_EV = 91.8;                 // eV per 13.5 nm photon (1240/13.5)
   var E_PHOTON_J = E_PHOTON_EV * 1.602e-19;
@@ -592,11 +592,11 @@
   function computeShotNoise() {
     var p = getD2();
 
-    /* Photons per cm² — dose converted mJ → J, divided by photon energy in J.
+    /* Photons per cm²: dose converted mJ → J, divided by photon energy in J.
        At 30 mJ/cm²: 2.04×10¹⁵ photons/cm². */
     var photonsPerCm2 = (p.dose * 1e-3) / E_PHOTON_J;
 
-    /* Photons per pixel — project reference convention (README "Reference
+    /* Photons per pixel: project reference convention (README "Reference
        numbers"): dose[mJ/cm²] × (size[nm])² / (E_photon[eV] × 1.602).
        This reproduces the published EUV shot-noise figure of ~20 photons per
        10 nm feature at 30 mJ/cm² (Poisson σ/μ ≈ 22%). */
@@ -628,9 +628,9 @@
     var atDefaults = (p.dose === 30 && p.size === 10);
     callout.innerHTML = atDefaults
       ? '<b>At the defaults (30 mJ/cm², 10 nm): ≈' + photonsPerPixel.toFixed(0) + ' photons per pixel → ±' +
-        (100 * noise).toFixed(0) + '% shot noise.</b> About one in five of the "ink" that writes a modern transistor is random chance — and shrinking features further only makes it worse.'
+        (100 * noise).toFixed(0) + '% shot noise.</b> About one in five of the "ink" that writes a modern transistor is random chance, and shrinking features further only makes it worse.'
       : '<b>Current settings:</b> ' + photonsPerPixel.toFixed(1) + ' photons per ' + p.size + ' nm pixel → ±' +
-        (100 * noise).toFixed(1) + '% Poisson noise (σ/μ = 1/√N). Drag dose and feature size — smaller features are starved of photons.';
+        (100 * noise).toFixed(1) + '% Poisson noise (σ/μ = 1/√N). Drag dose and feature size; smaller features are starved of photons.';
   }
 
   /* ---- wiring ---- */
@@ -648,7 +648,7 @@
   computeShotNoise();
 
 /* ==================================================================
- * DEMO 3 PHYSICS CORE — pure functions, no DOM.
+ * DEMO 3 PHYSICS CORE: pure functions, no DOM.
  * Mask -> pupil (Zernike aberrations) -> aerial image via FFT-based
  * Abbe method. Kept in one marker-delimited block so the browser
  * build and the Node verification share byte-identical code.
@@ -1109,7 +1109,7 @@ var DEMO3 = (function () {
 
     /* ---- pupil phase map (display scale: full disk across the canvas so
      * the aberration structure is visible; native-sim pupil is ~13 px).
-     * Same physics — aberrationPhase(rho, theta, waves) — resampled. ---- */
+     * Same physics: aberrationPhase(rho, theta, waves), resampled. */
     var dscale = 1.15 / (N / 2);
     var pc = document.getElementById("pupilCanvas").getContext("2d");
     var pim = pc.createImageData(N, N);
