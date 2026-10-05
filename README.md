@@ -1,4 +1,4 @@
-# EUV Playground — open-source EUV lithography simulator
+# EUV Playground: open-source EUV lithography simulator
 
 Interactive simulation of extreme ultraviolet (13.5 nm) lithography using multilayer-optics equations and published reference data.
 
@@ -8,13 +8,13 @@ Chips are printed by shining light through a mask onto photoresist. Shorter
 wavelength → smaller features. The industry stalled at 193 nm and the only way
 forward is **EUV at 13.5 nm**. At that wavelength:
 
-- **Everything absorbs** — no lenses exist, only mirrors, and the whole tool
+- **Everything absorbs**: no lenses exist, only mirrors, and the whole tool
   runs in vacuum.
-- **Mirrors are multilayer stacks** — 40–60 pairs of alternating Mo/Si layers,
+- **Mirrors are multilayer stacks**: 40-60 pairs of alternating Mo/Si layers,
   ~7 nm per pair, engineered to Bragg-reflect at exactly 13.5 nm. Peak
   reflectivity is only ~70% (vs 99.9% for visible-light mirrors), so a scanner's
   ~10 mirrors throw away ~99% of the source light.
-- **Shot noise is brutal** — each 13.5 nm photon carries 92 eV. A 30 mJ/cm²
+- **Shot noise is brutal**: each 13.5 nm photon carries 92 eV. A 30 mJ/cm²
   resist dose is only ~20 photons per 10 nm feature; Poisson noise on 20
   photons is ±22%. Roughly a fifth of the "ink" that writes a modern transistor
   is random chance.
